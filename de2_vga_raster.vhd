@@ -44,11 +44,17 @@ architecture rtl of de2_vga_raster is
   constant VACTIVE      : integer := 480;
   constant VFRONT_PORCH : integer := 10;
 
-  constant RECTANGLE_HSTART : integer := 100;
-  constant RECTANGLE_HEND   : integer := 540;
-  constant RECTANGLE_VSTART : integer := 100;
-  constant RECTANGLE_VEND   : integer := 380;
-
+  --constant RECTANGLE_HSTART : integer := 100;
+  --constant RECTANGLE_HEND   : integer := 240;
+  --constant RECTANGLE_VSTART : integer := 100;
+  --constant RECTANGLE_VEND   : integer := 180;
+  
+  -- Signals related to ball drawing 
+  constant RADIUS	  : integer :=30;   --radius of the ball
+  constant Hinitial : integer :=400;  --initial x value of the center of the ball
+  constant Vinitial : integer :=263;  --initial y value of the center of the ball
+  
+	
   -- Signals for the video controller
   signal Hcount : unsigned(9 downto 0);  -- Horizontal position (0-800)
   signal Vcount : unsigned(9 downto 0);  -- Vertical position (0-524)
@@ -153,32 +159,55 @@ begin
 
   -- Rectangle generator
 
-  RectangleHGen : process (clk)
-  begin
-    if rising_edge(clk) then     
-      if reset = '1' or Hcount = HSYNC + HBACK_PORCH + RECTANGLE_HSTART then
-        rectangle_h <= '1';
-      elsif Hcount = HSYNC + HBACK_PORCH + RECTANGLE_HEND then
-        rectangle_h <= '0';
-      end if;      
-    end if;
-  end process RectangleHGen;
+--  RectangleHGen : process (clk)
+--  begin
+--    if rising_edge(clk) then     
+--      if reset = '1' or Hcount = HSYNC + HBACK_PORCH + RECTANGLE_HSTART then
+--        rectangle_h <= '1';
+--      elsif Hcount = HSYNC + HBACK_PORCH + RECTANGLE_HEND then
+--		  rectangle_h <= '0';
+--      end if;      
+--    end if;
+--  end process RectangleHGen;
 
-  RectangleVGen : process (clk)
-  begin
-    if rising_edge(clk) then
-      if reset = '1' then       
-        rectangle_v <= '0';
-      elsif EndOfLine = '1' then
-        if Vcount = VSYNC + VBACK_PORCH - 1 + RECTANGLE_VSTART then
-          rectangle_v <= '1';
-        elsif Vcount = VSYNC + VBACK_PORCH - 1 + RECTANGLE_VEND then
-          rectangle_v <= '0';
-        end if;
-      end if;      
-    end if;
-  end process RectangleVGen;
+--  RectangleVGen : process (clk)
+--  begin
+--    if rising_edge(clk) then
+--      if reset = '1' then       
+--        rectangle_v <= '0';
+--      elsif EndOfLine = '1' then
+--        if Vcount = VSYNC + VBACK_PORCH - 1 + RECTANGLE_VSTART then
+--          rectangle_v <= '1';
+--        elsif Vcount = VSYNC + VBACK_PORCH - 1 + RECTANGLE_VEND then
+--          rectangle_v <= '0';
+--        end if;
+--      end if;      
+--    end if;
+--  end process RectangleVGen;
 
+BallGen : process (clk)
+variable distance_square : integer;
+variable distance_H      : integer;
+variable distance_V      : integer;
+begin
+	if rising_edge (clk) then
+	distance_H := abs(TO_INTEGER(Hcount)-Hinitial);
+	distance_V := abs(TO_INTEGER(Vcount)-Vinitial);
+	distance_square :=(distance_H*distance_H+distance_V*distance_V);
+		if reset = '1' then 
+		rectangle_h<= '0';
+		rectangle_v<= '0';
+		elsif distance_square<= RADIUS*RADIUS then
+		rectangle_h<= '1';
+		rectangle_v<= '1';
+		else
+		rectangle_h<= '0';
+		rectangle_v<= '0';
+		end if;
+	end if;
+end process BallGen;	
+		
+		
   rectangle <= rectangle_h and rectangle_v;
 
   -- Registered video signals going to the video DAC
