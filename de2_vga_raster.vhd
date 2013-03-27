@@ -16,6 +16,13 @@ entity de2_vga_raster is
     reset : in std_logic;
     clk   : in std_logic;                    -- Should be 25.125 MHz
 
+    center_data : in std_logic_vector(31 downto 0); -- circle center
+    chipselect : in std_logic;
+    write      : in std_logic;
+    --address  :  in std_logic_vector(17 downto 0);
+    --readdata : out std_logic_vector(15 downto 0);
+    --writedata : in std_logic_vector(15 downto 0);
+	 
     VGA_CLK,                         -- Clock
     VGA_HS,                          -- H_SYNC
     VGA_VS,                          -- V_SYNC
@@ -50,7 +57,7 @@ architecture rtl of de2_vga_raster is
   --constant RECTANGLE_VEND   : integer := 180;
   
   -- Signals related to ball drawing 
-  constant RADIUS	  : integer :=30;   --radius of the ball
+  constant RADIUS	  : integer :=10;   --radius of the ball
   constant Hinitial : integer :=400;  --initial x value of the center of the ball
   constant Vinitial : integer :=263;  --initial y value of the center of the ball
   
@@ -191,13 +198,13 @@ variable distance_H      : integer;
 variable distance_V      : integer;
 begin
 	if rising_edge (clk) then
-	distance_H := abs(TO_INTEGER(Hcount)-Hinitial);
-	distance_V := abs(TO_INTEGER(Vcount)-Vinitial);
-	distance_square :=(distance_H*distance_H+distance_V*distance_V);
+	distance_H := abs(TO_INTEGER(Hcount)- TO_INTEGER(unsigned(center_data(15 downto 0))));
+	distance_V := abs(TO_INTEGER(Vcount)- TO_INTEGER(unsigned(center_data(31 downto 16))));
+	distance_square :=(distance_H*distance_H)+(distance_V*distance_V);
 		if reset = '1' then 
 		rectangle_h<= '0';
 		rectangle_v<= '0';
-		elsif distance_square<= RADIUS*RADIUS then
+		elsif distance_square < RADIUS*RADIUS then
 		rectangle_h<= '1';
 		rectangle_v<= '1';
 		else
